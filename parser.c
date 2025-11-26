@@ -1,4 +1,5 @@
 #include "parser.h"
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -157,7 +158,15 @@ static void list_directory(d64image* image) {
 			char out[file->size];
 			petscii_to_ascii_file(file, out);
 
-			FILE* f = fopen(name, "wb");
+			char path[24];
+			sprintf(path, "out/%s", name);
+
+			FILE* f = fopen(path, "wb");
+			if (f == NULL) {
+				perror("Could not write to file");
+				continue;
+			}
+
 			fwrite(out, 1, file->size, f);
 			fclose(f);
 	
@@ -165,7 +174,6 @@ static void list_directory(d64image* image) {
 
 			int blocks = entry[30] + (entry[31] << 8);
 			int approx_bytes = blocks * 256;
-			printf("blocks: %d\n", blocks);
 
 			printf("%s - %s: start_sector = %d, start_track = %d\n", name, ftype, start_sector, start_track);
 

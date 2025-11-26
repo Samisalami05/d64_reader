@@ -3,8 +3,13 @@
 
 #include "parser.h"
 
-int main(void) {
-	d64image* image = parse_d64("WorkDisk.d64");
+int main(int argc, char* argv[]) {
+	if (argc != 2) {
+		fprintf(stderr, "Usage: %s [FILE]\n", argv[0]);
+		exit(EXIT_FAILURE);
+	}
+
+	d64image* image = parse_d64(argv[1]);
 	if (image == NULL) return 1;
 
 	for (int x = 0; x < image->num_sectors; x++) {
@@ -16,13 +21,6 @@ int main(void) {
 	}
 
 	d64file* file = d64_read_file(image, 17, 19);
-
-	char out[file->size];
-	petscii_to_ascii_file(file, out);
-
-	FILE* f = fopen("out.txt", "wb");
-	//fwrite(out, 1, file->size, f);
-	fclose(f);
 
 	d64image_free(image);
 	return 0;
