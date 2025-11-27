@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include "petscii.h"
 
 #define SECTOR_SIZE 256
 
@@ -14,57 +15,11 @@ static const int sectors_per_track[36] = {
     17,17,17,17,17										// 31–35
 };
 
-static const char* petscii_chars = " !\"#$%&'()*+,-./0123456789:;<=>?@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-char petscii_to_ascii_char(uint8_t in) {
-	switch (in) {
-		case 0x0D: return '\n';
-		case 0x5C: return '\\';
-		case 0xDB: return '{';
-		case 0xDD: return '}';
-		case 0x5B: return '[';
-		case 0x5D: return ']';
-		default: 
-			if ((in >= 32 && in <= 90)) {
-				////printf("converting %d to %c\n", in, petscii_chars[in - 32]);
-				return petscii_chars[in - 32];
-			}
-			else if (in >= 193 && in <= 218) {
-				return petscii_chars[in - 134];
-			}
-
-	}
-	return '?';
-}
-
-// Has set size of 17
-void petscii_to_ascii(char *out, uint8_t *in) {
-    for (int i = 0; i < 16; i++) {
-        if (in[i] == 0xA0) out[i] = ' ';
-        else if (in[i] >= 32 && in[i] <= 126) out[i] = in[i];
-        else out[i] = '?';
-    }
-    out[16] = '\0';
-
-	// Remove unnecesary spaces
-	for (int i = 15; i >= 0; i--) {
-		if (out[i] != ' ') {
-			out[i + 1] = '\0';
-			break;
-		}
-	}
-}
-
 void petscii_to_ascii_file(d64file* file, char *out) {
     for (int i = 0; i < file->size; i++) {
         uint8_t b = file->data[i];
 
-        //if (b == 0x0D) out[i] = '\n';    // PETSCII CR → ASCII LF
-        //else if (b == 0xA0) out[i] = ' '; // PETSCII space
-        //else if (b >= 32 && b <= 126) out[i] = b; // printable ASCII
-        //else out[i] = '?';  // other unprintable bytes
-		
-		out[i] = petscii_to_ascii_char(b);
+		out[i] = petscii_to_ascii(b);
 	}
     out[file->size] = '\0';
 }
@@ -170,7 +125,7 @@ static int parse_file_entry(d64image* image, uint8_t* edata) {
 	entry.start_sector = edata[2];
 	entry.blocks = edata[30] + (edata[31] << 8);
 	entry.name = malloc(sizeof(char) * 17);
-	petscii_to_ascii(entry.name, edata + 3);
+	petscii_to_ascii_str(edata + 3, 17, entry.name);
 
 	image->num_file_entry++;
 	image->file_entries = realloc(image->file_entries, sizeof(d64file_entry) * image->num_file_entry);
@@ -203,7 +158,7 @@ static void list_directory(d64image* image) {
 			int start_sector = entry[2];
 
 			char name[17];
-			petscii_to_ascii(name, entry + 3);
+			petscii_to_ascii_str(entry + 3, 17, name);
 
 			d64file* file = d64_read_file(image, start_track, start_sector);
 

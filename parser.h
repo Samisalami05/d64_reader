@@ -34,8 +34,6 @@ typedef struct d64image {
 	d64file_entry* file_entries;
 } d64image;
 
-char petscii_to_ascii_char(uint8_t in);
-void petscii_to_ascii(char *out, uint8_t *in);
 void petscii_to_ascii_file(d64file* file, char *out);
 
 int d64_track_sector(int track, int sector);
