@@ -14,6 +14,29 @@ static const int sectors_per_track[36] = {
     17,17,17,17,17										// 31–35
 };
 
+static const char* petscii_chars = " !\"#$%&'()*+,-./0123456789:;<=>?@abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+char petscii_to_ascii_char(uint8_t in) {
+	switch (in) {
+		case 0x0D: return '\n';
+		case 0x5C: return '\\';
+		case 0xDB: return '{';
+		case 0xDD: return '}';
+		case 0x5B: return '[';
+		case 0x5D: return ']';
+		default: 
+			if ((in >= 32 && in <= 90)) {
+				////printf("converting %d to %c\n", in, petscii_chars[in - 32]);
+				return petscii_chars[in - 32];
+			}
+			else if (in >= 193 && in <= 218) {
+				return petscii_chars[in - 134];
+			}
+
+	}
+	return '?';
+}
+
 // Has set size of 17
 void petscii_to_ascii(char *out, uint8_t *in) {
     for (int i = 0; i < 16; i++) {
@@ -36,10 +59,12 @@ void petscii_to_ascii_file(d64file* file, char *out) {
     for (int i = 0; i < file->size; i++) {
         uint8_t b = file->data[i];
 
-        if (b == 0x0D) out[i] = '\n';    // PETSCII CR → ASCII LF
-        else if (b == 0xA0) out[i] = ' '; // PETSCII space
-        else if (b >= 32 && b <= 126) out[i] = b; // printable ASCII
-        else out[i] = '?';  // other unprintable bytes
+        //if (b == 0x0D) out[i] = '\n';    // PETSCII CR → ASCII LF
+        //else if (b == 0xA0) out[i] = ' '; // PETSCII space
+        //else if (b >= 32 && b <= 126) out[i] = b; // printable ASCII
+        //else out[i] = '?';  // other unprintable bytes
+		
+		out[i] = petscii_to_ascii_char(b);
 	}
     out[file->size] = '\0';
 }
@@ -124,16 +149,41 @@ d64file* d64_read_file(d64image* image, int track, int sector) {
 		}
 
 		file->size += bytes_to_copy;
+		printf("adding %d to %d\n", bytes_to_copy, file->size);
 
 	}
 	return file;
 }
-	
+
+d64file* d64read_file(d64image* image, d64file_entry* entry) {
+	d64file* file = d64_read_file(image, entry->start_track, entry->start_sector);
+	return file;
+}
+
+static int parse_file_entry(d64image* image, uint8_t* edata) {
+	uint8_t type = edata[0];
+	if ((type & 0x80) == 0) return -1;
+
+	d64file_entry entry;
+	entry.type = type;
+	entry.start_track = edata[1];
+	entry.start_sector = edata[2];
+	entry.blocks = edata[30] + (edata[31] << 8);
+	entry.name = malloc(sizeof(char) * 17);
+	petscii_to_ascii(entry.name, edata + 3);
+
+	image->num_file_entry++;
+	image->file_entries = realloc(image->file_entries, sizeof(d64file_entry) * image->num_file_entry);
+	image->file_entries[image->num_file_entry - 1] = entry;
+
+	return image->num_file_entry - 1;
+}
+
 
 static void list_directory(d64image* image) {
 	int track = 18;
 	int sector = 1;
-
+	
 	while (track != 0) {
 		int index = d64_track_sector(track, sector);
 		uint8_t* sec = image->sectors[index];
@@ -147,6 +197,8 @@ static void list_directory(d64image* image) {
 			uint8_t type = entry[0];
 			if ((type & 0x80) == 0) continue;   // bit 7 must be set
 			
+			int fentry = parse_file_entry(image, entry);
+
 			int start_track = entry[1];
 			int start_sector = entry[2];
 
@@ -175,7 +227,7 @@ static void list_directory(d64image* image) {
 			int blocks = entry[30] + (entry[31] << 8);
 			int approx_bytes = blocks * 256;
 
-			printf("%s - %s: start_sector = %d, start_track = %d\n", name, ftype, start_sector, start_track);
+			//printf("%s - %s: start_sector = %d, start_track = %d\n", name, ftype, start_sector, start_track);
 
 		}
 	}
@@ -206,6 +258,8 @@ d64image* parse_d64(char* filePath) {
 	d64image* image = malloc(sizeof(d64image));
 	image->num_sectors = num_sectors;
 	image->sectors = malloc(sizeof(uint8_t*) * num_sectors);
+	image->file_entries = NULL;
+	image->num_file_entry = 0;
 
 	for (int i = 0; i < num_sectors; i++) {
 		image->sectors[i] = malloc(SECTOR_SIZE);
@@ -218,6 +272,14 @@ d64image* parse_d64(char* filePath) {
 
 	fclose(f);
 	return image;
+}
+
+void d64print_file_entry(d64file_entry entry) {
+	printf("File entry: %s\n", entry.name);
+	printf("Blocks: %d\n", entry.blocks);
+	printf("Start track: %d\n", entry.start_track);
+	printf("Start sector: %d\n", entry.start_sector);
+	printf("Type: %s\n\n", d64_type_str(entry.type));
 }
 
 void d64image_free(d64image* image) {
