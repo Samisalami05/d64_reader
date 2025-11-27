@@ -33,12 +33,9 @@ void petscii_to_ascii_str(uint8_t* in, int len, char* out) {
 
 	// Remove unnecesary spaces
 	for (int i = len - 2; i >= 0; i--) {
-		printf("%d\n", in[i]);
 		if (out[i] != ' ') {
 			out[i + 1] = '\0';
 			break;
 		}
 	}
-
-	printf("%s\n", out);
 }
