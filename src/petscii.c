@@ -23,7 +23,7 @@ char petscii_to_ascii(uint8_t in) {
 			}
 
 	}
-	printf(" %d ", in);
+	//printf(" %d ", in);
 	return '?';
 }
 

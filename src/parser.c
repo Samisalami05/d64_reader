@@ -25,10 +25,10 @@ void d64_file_to_ascii(d64file* file, char *out) {
 }
 
 static void remove_spaces(char* str, int len) {
-	for (int i = len - 1; i >= 0; i++) {
+	for (int i = len - 1; i >= 0; i--) {
 		if (str[i] != ' ') {
 			str[i + 1] = '\0';
-			break;
+			return;
 		}
 	}
 }
