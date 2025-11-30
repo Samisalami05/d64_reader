@@ -139,7 +139,7 @@ d64file_entry* d64_find_file(d64image* image, const char* name) {
 	return NULL;
 }
 
-d64file* d64_read_by_name(d64image* image, const char* name) {
+d64file* d64_read_file_name(d64image* image, const char* name) {
 	d64file_entry* entry = d64_find_file(image, name);
 	return d64_read_file(image, entry);
 }
@@ -169,7 +169,7 @@ static int parse_file_entry(d64image* image, uint8_t* edata) {
 	entry.type = type;
 	entry.start_track = edata[1];
 	entry.start_sector = edata[2];
-	entry.blocks = edata[30] + (edata[31] << 8);
+	entry.blocks = edata[27] | edata[28] << 8;
 	petscii_to_ascii_str(edata + 3, 16, entry.name);
 	remove_spaces(entry.name, 16);
 

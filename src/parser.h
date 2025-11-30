@@ -34,7 +34,7 @@ void d64_file_to_ascii(d64file* file, char *out);
 
 int d64_ts_offset(int track, int sector);
 d64file_entry* d64_find_file(d64image* image, const char* name);
-d64file* d64_read_by_name(d64image* image, const char* name);
+d64file* d64_read_file_name(d64image* image, const char* name);
 d64file* d64_read_file(d64image* image, d64file_entry* entry);
 d64file* d64_read_file_index(d64image* image, int entry);
 d64file* d64_read_file_ts(d64image* image, int track, int sector);
