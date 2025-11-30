@@ -43,7 +43,7 @@ static int bam_is_free(d64bam_track* bam_track, int sector) {
 }
 
 static void parse_bam(d64image* image) {
-	int index = d64_track_sector(18, 0);
+	int index = d64_ts_offset(18, 0);
 	uint8_t* sector = image->sectors[index];
 
 	uint8_t* p = sector + 4;
@@ -58,16 +58,16 @@ static void parse_bam(d64image* image) {
 	}
 }
 
-int d64_track_sector(int track, int sector) {
+int d64_ts_offset(int track, int sector) {
 	if (track < 1 || track > 35) return -1;
 	if (sector < 0 || sector >= sectors_per_track[track]) return -1;
 
-	int index = 0;
+	int offset = 0;
 	for (int i = 0; i < track; i++) {
-		index += sectors_per_track[i];
+		offset += sectors_per_track[i];
 	}
 
-	return index + sector;
+	return offset + sector;
 }
 
 static char* d64_type_str(uint8_t type) {
@@ -89,10 +89,10 @@ d64file* d64_read_file_ts(d64image* image, int track, int sector) {
 	d64file* file = malloc(sizeof(d64file));
 	file->size = 0;
 	file->data = malloc(capacity);
-	file->entry = -1;
+	file->entry = NULL;
 
 	while (t != 0) {
-		int index = d64_track_sector(t, s);
+		int index = d64_ts_offset(t, s);
 
 		if (index < 0 || index >= image->num_sectors) break;
 
@@ -118,11 +118,30 @@ d64file* d64_read_file_ts(d64image* image, int track, int sector) {
 	return file;
 }
 
-d64file* d64_read_file(d64image* image, int entry) {
-	d64file_entry fentry = image->file_entries[entry];
-	d64file* file = d64_read_file_ts(image, fentry.start_track, fentry.start_sector);
+d64file* d64_read_file(d64image* image, d64file_entry* entry) {
+	d64file* file = d64_read_file_ts(image, entry->start_track, entry->start_sector);
 	file->entry = entry;
 	return file;
+}
+
+d64file* d64_read_file_index(d64image* image, int entry) {
+	d64file_entry* fentry = &image->file_entries[entry];
+	return d64_read_file(image, fentry);
+}
+
+d64file_entry* d64_find_file(d64image* image, const char* name) {
+	for (int i = 0; i < image->num_file_entry; i++) {
+		d64file_entry* entry = &image->file_entries[i];
+		if (strcmp(entry->name, name) == 0) {
+			return entry;
+		}
+	}
+	return NULL;
+}
+
+d64file* d64_read_by_name(d64image* image, const char* name) {
+	d64file_entry* entry = d64_find_file(image, name);
+	return d64_read_file(image, entry);
 }
 
 static d64image* d64_parse_image(FILE* f, int fileSize) {
@@ -151,7 +170,6 @@ static int parse_file_entry(d64image* image, uint8_t* edata) {
 	entry.start_track = edata[1];
 	entry.start_sector = edata[2];
 	entry.blocks = edata[30] + (edata[31] << 8);
-	entry.name = malloc(sizeof(char) * 17);
 	petscii_to_ascii_str(edata + 3, 16, entry.name);
 	remove_spaces(entry.name, 16);
 
@@ -168,7 +186,7 @@ static void d64_parse_file_entries(d64image* image) {
 	int sector = 1;
 	
 	while (track != 0) {
-		int index = d64_track_sector(track, sector);
+		int index = d64_ts_offset(track, sector);
 		uint8_t* sec = image->sectors[index];
 
 		track = sec[0];
@@ -221,13 +239,13 @@ void d64_print_file_entry(d64file_entry entry) {
 }
 
 void d64_print_file(d64image* image, d64file* file) {
-	d64file_entry entry = image->file_entries[file->entry];
-	printf("File: %s\n", entry.name);
-	printf("Blocks: %d\n", entry.blocks);
+	d64file_entry* entry = file->entry;
+	printf("File: %s\n", entry->name);
+	printf("Blocks: %d\n", entry->blocks);
 	printf("Size: %d\n", file->size);
-	printf("Start track: %d\n", entry.start_track);
-	printf("Start sector: %d\n", entry.start_sector);
-	printf("Type: %s\n\n", d64_type_str(entry.type));
+	printf("Start track: %d\n", entry->start_track);
+	printf("Start sector: %d\n", entry->start_sector);
+	printf("Type: %s\n\n", d64_type_str(entry->type));
 }
 
 void d64_image_free(d64image* image) {
@@ -236,7 +254,7 @@ void d64_image_free(d64image* image) {
 	}
 
 	for (int i = 0; i < image->num_file_entry; i++) {
-		free(image->file_entries[i].name);
+		//free(image->file_entries[i].name);
 	}
 	free(image->file_entries);
 	free(image->sectors);
