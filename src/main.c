@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "parser.h"
+#include "d64.h"
 
 int main(int argc, char* argv[]) {
 	if (argc != 3) {
@@ -12,6 +12,8 @@ int main(int argc, char* argv[]) {
 
 	d64image* image = d64_read(argv[1]);
 	if (image == NULL) return 1;
+
+	d64_print_image(image);
 
 	for (int i = 0; i < image->num_file_entry; i++) {
 		d64file* file = d64_read_file_index(image, i);
