@@ -10,20 +10,77 @@ interpret.
 
 ## Usage
 
+### Structures
+
+#### d64image
+
+The main structure of the reader is the `d64image` which
+represents a image of a `.d64` file. This structure stores
+information and data from the disk.
+
+```c
+struct d64image {
+	char diskname[17];
+	int size;
+	d64bam_track bam_tracks[36];
+	int num_sectors;
+	int num_file_entry;
+	uint8_t** sectors;
+	d64file_entry* file_entries;
+}
+```
+
+#### d64file_entry
+
+Each file has a correspondind file entry `d64file_entry` that
+is stored in the `d64image` structure. This structure stores
+information about the file that can then be used for gathering
+the data of the file.
+
+```c
+typedef struct d64file_entry {
+	char name[17];
+	uint8_t type;
+	int blocks;
+	int start_track;
+	int start_sector;
+} d64file_entry;
+```
+
+#### d64file
+
+A file is represented by the `d64file` structure that both stores
+a pointer to its file entry but also the data and size of the
+file.
+
+```c
+typedef struct d64file {
+	d64file_entry* entry;
+	int size;
+	uint8_t* data;
+} d64file;
+```
+
 ### Reading
 
-#### d64_read()
-
 ```c
 d64image* d64_read(char* filePath);
 ```
-Reads the given `.d64` file and returns an image. This image
-can then be used to get data from the disk.
+Reads the given `.d64` file and returns an image. This image can
+then be used to get data from the disk.
 
-#### d64_read_file()
+**Note:** The image needs to be freed after use.
+
 ```c
-d64image* d64_read(char* filePath);
+d64file* d64_read_file(d64image* image, d64file_entry* entry);
 ```
+
+Returns a file of the given file entry inside the image.
+
+**Note:** The file needs to be freed after use.
+
+### Helpers
+
 
 ```c
 void d64_file_to_ascii(d64file* file, char *out);

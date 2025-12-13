@@ -120,11 +120,24 @@ d64image* d64_read(char* filePath) {
 	fseek(f, 0, SEEK_SET);
 
 	d64image* image = d64_create_image(f, fileSize);
+
+	int path_len = strlen(filePath);
+	image->filepath = malloc(path_len + 1);
+	memcpy(image->filepath, filePath, path_len);
+	image->filepath[path_len] = '\0';
+
 	parse_bam(image);
 	d64_parse_file_entries(image);
 
 	fclose(f);
 	return image;
+}
+
+void d64_image_write(d64image* image, int entry, uint8_t* data, int size) {
+	d64file_entry fentry = image->file_entries[entry];
+	int offset = d64_ts_offset(fentry.start_track, fentry.start_sector);
+
+	
 }
 
 void d64_print_file_entry(d64file_entry entry) {

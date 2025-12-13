@@ -23,6 +23,7 @@ typedef struct d64file {
 } d64file;
 
 typedef struct d64image {
+	char* filepath;
 	char diskname[17];
 	int size;
 	d64bam_track bam_tracks[36];
@@ -40,6 +41,9 @@ d64file* d64_read_file_name(d64image* image, const char* name);
 d64file* d64_read_file(d64image* image, d64file_entry* entry);
 d64file* d64_read_file_index(d64image* image, int entry);
 d64file* d64_read_file_ts(d64image* image, int track, int sector);
+
+void d64_image_write(d64image* image, int entry, uint8_t* data, int size);
+
 d64image* d64_read(char* filePath);
 
 void d64_print_image(d64image* image);
