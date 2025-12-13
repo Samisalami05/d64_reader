@@ -8,7 +8,7 @@ interpret.
 * Exporting data of files
 * Conversion from petscii to ascii (Commodores character table)
 
-## Usage
+## Implementation
 
 ### Structures
 
@@ -16,7 +16,7 @@ interpret.
 
 The main structure of the reader is the `d64image` which
 represents a image of a `.d64` file. This structure stores
-information and data from the disk.
+information and data about the disk.
 
 ```c
 struct d64image {
@@ -74,29 +74,70 @@ then be used to get data from the disk.
 ```c
 d64file* d64_read_file(d64image* image, d64file_entry* entry);
 ```
-
 Returns a file of the given file entry inside the image.
 
 **Note:** The file needs to be freed after use.
 
+```c
+d64file* d64_read_file_name(d64image* image, const char* name);
+```
+Returns a file with the given name inside the image.
+
+**Note:** The file needs to be freed after use.
+
+```c
+d64file* d64_read_file_index(d64image* image, int entry);
+```
+Returns a file with the given index inside the image.
+
+**Note:** The file needs to be freed after use.
+
+```c
+d64file* d64_read_file_ts(d64image* image, int track, int sector);
+```
+Returns a file from the given sector on the track.
+
+**Note:** The file needs to be freed after use.
+
+### Writing
+
+Not implemented yet.
+
+### Printing
+
+```c
+void d64_print_image(d64image* image);
+```
+Prints information about a given `d64image`.
+
+```c
+void d64_print_file_entry(d64file_entry entry);
+```
+Prints information about a given `d64file_entry`.
+
+```c
+void d64_print_file(d64image* image, d64file* file);
+```
+Prints information about a given `d64file`.
+
+**Note:** The file must exist in the given image.
+
 ### Helpers
 
+```c 
+d64file_entry* d64_find_file(d64image* image, const char* name);
+```
+Finds a file entry in a `d64image` by name.
 
 ```c
 void d64_file_to_ascii(d64file* file, char *out);
-int d64_ts_offset(int track, int sector);
-
-d64file_entry* d64_find_file(d64image* image, const char* name);
-d64file* d64_read_file_name(d64image* image, const char* name);
-d64file* d64_read_file(d64image* image, d64file_entry* entry);
-d64file* d64_read_file_index(d64image* image, int entry);
-d64file* d64_read_file_ts(d64image* image, int track, int sector);
-d64image* d64_read(char* filePath);
-
-void d64_print_image(d64image* image);
-void d64_print_file_entry(d64file_entry entry);
-void d64_print_file(d64image* image, d64file* file);
-
-void d64_image_free(d64image* image);
-void d64_file_free(d64file* file);
 ```
+Converts the given file to ascii characters. 
+
+**Note:** The out parameter must be allocated with the file 
+size plus one amount of bytes.
+
+```c
+int d64_ts_offset(int track, int sector);
+```
+Returns the byte offset of a sector in a given track.
